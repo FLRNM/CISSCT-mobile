@@ -205,16 +205,32 @@ const canvas = document.getElementById('sigCanvas');
 const ctx    = canvas.getContext('2d');
 let drawing  = false, hasSig = false;
 
+let savedSignature = null;
+
 function resizeCanvas() {
   const dpr  = window.devicePixelRatio || 1;
   const rect = canvas.parentElement.getBoundingClientRect();
+  // Sauvegarde la signature avant redimensionnement
+  if (hasSig) {
+    savedSignature = canvas.toDataURL('image/png');
+  }
   canvas.width  = rect.width * dpr;
   canvas.height = 140 * dpr;
   ctx.scale(dpr, dpr);
   ctx.strokeStyle = '#1a3a5c'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  // Restaure la signature après redimensionnement
+  if (savedSignature) {
+    const img = new Image();
+    img.onload = () => ctx.drawImage(img, 0, 0, canvas.width/dpr, canvas.height/dpr);
+    img.src = savedSignature;
+  }
 }
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
+// Sur mobile, le clavier virtuel déclenche un resize via visualViewport
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', resizeCanvas);
+}
 
 function getPos(e) {
   const rect = canvas.getBoundingClientRect();
@@ -229,7 +245,7 @@ canvas.addEventListener('touchmove', e => { e.preventDefault(); if(!drawing)retu
 canvas.addEventListener('touchend',  () => drawing=false);
 
 function startSig() { hasSig=true; document.getElementById('sigHint').style.opacity='0'; document.getElementById('canvasWrap').classList.add('active'); }
-function clearCanvas() { const dpr=window.devicePixelRatio||1; ctx.clearRect(0,0,canvas.width/dpr,canvas.height/dpr); hasSig=false; document.getElementById('sigHint').style.opacity='1'; document.getElementById('canvasWrap').classList.remove('active'); }
+function clearCanvas() { const dpr=window.devicePixelRatio||1; ctx.clearRect(0,0,canvas.width/dpr,canvas.height/dpr); hasSig=false; savedSignature=null; document.getElementById('sigHint').style.opacity='1'; document.getElementById('canvasWrap').classList.remove('active'); }
 
 // ── Submit ────────────────────────────────────────────────────────────────
 async function submit() {
